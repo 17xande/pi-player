@@ -14,11 +14,21 @@ type Player struct {
 }
 
 var commandList = map[string]string{
-	"playpause": "p",
-	"up":        "\x1b[A",
-	"down":      "\x1b[B",
-	"left":      "\x1b[D",
-	"right":     "\x1b[C",
+	"increase-speed":   "1",
+	"decrease-speed":   "2",
+	"rewind":           "<",
+	"fast-forward":     ">",
+	"previous-chapter": "i",
+	"next-chapter":     "o",
+	"exit":             "q",
+	"quit":             "q",
+	"pause-resume":     "p",
+	"decrease-volume":  "-",
+	"increase-volume":  "+",
+	"seek-back-30":     "\x1b[D",
+	"seek-forward-30":  "\x1b[C",
+	"seek-back-600":    "\x1b[B",
+	"seek-forward-600": "\x1b[A",
 }
 
 // Start starts the player
