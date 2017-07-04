@@ -2,9 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"time"
 )
 
 // Player represents the omxplayer
@@ -32,9 +34,10 @@ var commandList = map[string]string{
 }
 
 // Start starts the player
-func (p *Player) Start(path string) error {
+func (p *Player) Start(path string, position time.Duration) error {
 	var err error
-	p.command = exec.Command("omxplayer", "-b", path)
+	pos := fmt.Sprintf("%d:%d:%d", position.Hours(), position.Minutes(), position.Seconds())
+	p.command = exec.Command("omxplayer", "-b", "-l", pos, path)
 	p.pipeIn, err = p.command.StdinPipe()
 	if err != nil {
 		return err

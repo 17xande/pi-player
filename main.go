@@ -4,6 +4,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 func main() {
@@ -39,7 +41,15 @@ func handlerHome(w http.ResponseWriter, r *http.Request) {
 
 func handlerStart(p *Player) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := p.Start("/home/pi/movies/Bee Movie.mp4")
+		position := time.Duration(0) * time.Second
+		q := r.URL.Query()
+		if q["position"] != nil {
+			if i, err := strconv.Atoi(q["position"][0]); err != nil {
+				position = time.Duration(i) * time.Second
+			}
+		}
+
+		err := p.Start("/home/pi/movies/Bee Movie.mp4", position)
 		if err != nil {
 			http.Error(w, "Couldn't start video. ", 500)
 			log.Println("Couldn't start video: ", err)
