@@ -9,6 +9,7 @@ import (
 func main() {
 	addr := ":8080"
 	http.HandleFunc("/", handlerHome)
+	http.HandleFunc("/test", test)
 
 	log.Printf("Listening on port %s\n", addr)
 	err := http.ListenAndServe(addr, nil)
@@ -32,4 +33,9 @@ func handlerHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	io.WriteString(w, "Welcome to the pi-player")
+}
+
+func test(w http.ResponseWriter, r *http.Request) {
+	play()
+	w.Write([]byte("play called"))
 }
