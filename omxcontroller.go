@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -13,11 +14,11 @@ type Player struct {
 }
 
 var commandList = map[string]string{
-	"playppause": "p",
-	"up":         "\x1b[A",
-	"down":       "\x1b[B",
-	"left":       "\x1b[D",
-	"right":      "\x1b[C",
+	"playpause": "p",
+	"up":        "\x1b[A",
+	"down":      "\x1b[B",
+	"left":      "\x1b[D",
+	"right":     "\x1b[C",
 }
 
 // Start starts the player
@@ -36,7 +37,11 @@ func (p Player) Start(path string) error {
 
 // SendCommand sends a command to the omxplayer process
 func (p Player) SendCommand(command string) error {
-	_, err := p.pipeIn.Write([]byte(commandList[command]))
+	cmd, ok := commandList[command]
+	if !ok {
+		return errors.New("Command not found: " + command)
+	}
+	_, err := p.pipeIn.Write([]byte(cmd))
 
 	return err
 }
