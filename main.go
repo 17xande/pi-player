@@ -36,6 +36,6 @@ func handlerHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func test(w http.ResponseWriter, r *http.Request) {
-	play()
+	testPlay()
 	w.Write([]byte("play called"))
 }
