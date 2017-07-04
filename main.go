@@ -8,8 +8,10 @@ import (
 
 func main() {
 	addr := ":8080"
+	p := Player{}
 	http.HandleFunc("/", handlerHome)
-	http.HandleFunc("/test", test)
+	http.HandleFunc("/start", handlerStart(&p))
+	http.HandleFunc("/command", handlerCommand(&p))
 
 	log.Printf("Listening on port %s\n", addr)
 	err := http.ListenAndServe(addr, nil)
@@ -35,7 +37,34 @@ func handlerHome(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Welcome to the pi-player")
 }
 
-func test(w http.ResponseWriter, r *http.Request) {
-	testPlay()
-	w.Write([]byte("play called"))
+func handlerStart(p *Player) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := p.Start("/home/pi/movies/Bee Movie.mp4")
+		if err != nil {
+			http.Error(w, "Couldn't start video. ", 500)
+			log.Println("Couldn't start video: ", err)
+			return
+		}
+		w.Write([]byte("Video Started!"))
+	}
+}
+
+func handlerCommand(p *Player) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		command := q["command"]
+		if command == nil {
+			w.Write([]byte("No command sent"))
+			return
+		}
+
+		err := p.SendCommand(command[0])
+
+		if err != nil {
+			http.Error(w, "Couldn't send command. ", 500)
+			log.Println("Couldn't send command: ", err)
+			return
+		}
+		w.Write([]byte("Command sent!"))
+	}
 }
