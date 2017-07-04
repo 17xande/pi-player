@@ -22,7 +22,7 @@ var commandList = map[string]string{
 }
 
 // Start starts the player
-func (p Player) Start(path string) error {
+func (p *Player) Start(path string) error {
 	var err error
 	p.command = exec.Command("omxplayer", "-b", path)
 	p.pipeIn, err = p.command.StdinPipe()
@@ -36,12 +36,13 @@ func (p Player) Start(path string) error {
 }
 
 // SendCommand sends a command to the omxplayer process
-func (p Player) SendCommand(command string) error {
+func (p *Player) SendCommand(command string) error {
 	cmd, ok := commandList[command]
 	if !ok {
 		return errors.New("Command not found: " + command)
 	}
-	_, err := p.pipeIn.Write([]byte(cmd))
+	b := []byte(cmd)
+	_, err := p.pipeIn.Write(b)
 
 	return err
 }

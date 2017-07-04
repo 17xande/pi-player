@@ -52,13 +52,13 @@ func handlerStart(p *Player) http.HandlerFunc {
 func handlerCommand(p *Player) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		command := q["command"]
-		if command == nil {
+		if q["command"] == nil {
 			w.Write([]byte("No command sent"))
 			return
 		}
 
-		err := p.SendCommand(command[0])
+		command := q["command"][0]
+		err := p.SendCommand(command)
 
 		if err != nil {
 			http.Error(w, "Couldn't send command. ", 500)
