@@ -13,6 +13,7 @@ import (
 type Player struct {
 	command *exec.Cmd
 	pipeIn  io.WriteCloser
+	debug   bool
 }
 
 var commandList = map[string]string{
@@ -36,9 +37,16 @@ var commandList = map[string]string{
 // Start starts the player
 func (p *Player) Start(path string, position time.Duration) error {
 	var err error
-	pos := fmt.Sprintf("%d:%d:%d", position.Hours(), position.Minutes(), position.Seconds())
+	pos := fmt.Sprintf("%d:%d:%d", int(position.Hours()), int(position.Minutes()), int(position.Seconds()))
+
+	if p.debug {
+		fmt.Println("omxplayer -b -l", pos, path)
+		p.pipeIn = os.Stdout
+		return nil
+	}
 	p.command = exec.Command("omxplayer", "-b", "-l", pos, path)
 	p.pipeIn, err = p.command.StdinPipe()
+
 	if err != nil {
 		return err
 	}

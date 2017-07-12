@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -9,14 +10,16 @@ import (
 )
 
 func main() {
-	addr := ":8080"
-	p := Player{}
+	addr := flag.String("addr", ":8080", "The addr of the application.")
+	debug := flag.Bool("debug", false, "direct commands to stdout instead of omx")
+	flag.Parse()
+	p := Player{debug: *debug}
 	http.HandleFunc("/", handlerHome)
 	http.HandleFunc("/start", handlerStart(&p))
 	http.HandleFunc("/command", handlerCommand(&p))
 
-	log.Printf("Listening on port %s\n", addr)
-	err := http.ListenAndServe(addr, nil)
+	log.Printf("Listening on port %s\n", *addr)
+	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
