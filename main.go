@@ -74,7 +74,7 @@ func handlerCommand(p *Player) http.HandlerFunc {
 		err := p.SendCommand(command)
 
 		if err != nil {
-			http.Error(w, "Couldn't send command. ", 500)
+			http.Error(w, "Couldn't send command. ", http.StatusInternalServerError)
 			log.Println("Couldn't send command: ", err)
 			return
 		}
