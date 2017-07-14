@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +16,7 @@ func main() {
 	debug := flag.Bool("debug", false, "direct commands to stdout instead of omx")
 	flag.Parse()
 	p := Player{debug: *debug}
+	http.Handle("/api", &apiHandler{})
 	http.HandleFunc("/", handlerHome)
 	http.HandleFunc("/start", handlerStart(&p))
 	http.HandleFunc("/command", handlerCommand(&p))
@@ -40,6 +43,46 @@ func handlerHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	io.WriteString(w, "Welcome to the pi-player")
+}
+
+type apiHandler struct{}
+
+func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		m := &resMessage{Success: false, Message: "Invalid request method: " + r.Method}
+		log.Println(m.Message)
+		json.NewEncoder(w).Encode(m)
+		return
+	}
+
+	ct := r.Header.Get("Content-Type")
+	if ct != "application/json" {
+		m := &resMessage{Success: false, Message: "Invalid Content-Type: " + ct}
+		log.Println(m.Message)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(m)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var msg reqMessage
+	err := decoder.Decode(&msg)
+	defer r.Body.Close()
+	if err != nil {
+		m := &resMessage{Success: false, Message: "Error decoding JSON request: " + err.Error()}
+		log.Println(m.Message)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(m)
+		return
+	}
+
+	m := &resMessage{
+		Success: true,
+		Message: fmt.Sprintf("Message Received:\ncomponent: %s\nmethod: %s\narguments: %v\n", msg.Component, msg.Method, msg.Arguments),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(m)
+	log.Println(m.Message)
 }
 
 func handlerStart(p *Player) http.HandlerFunc {
