@@ -16,7 +16,7 @@ func main() {
 	debug := flag.Bool("debug", false, "direct commands to stdout instead of omx")
 	flag.Parse()
 	p := Player{debug: *debug}
-	http.Handle("/api", &apiHandler{})
+	http.Handle("/api", &apiHandler{p})
 	http.HandleFunc("/", handlerHome)
 	http.HandleFunc("/start", handlerStart(&p))
 	http.HandleFunc("/command", handlerCommand(&p))
@@ -45,9 +45,12 @@ func handlerHome(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Welcome to the pi-player")
 }
 
-type apiHandler struct{}
+type apiHandler struct {
+	player Player
+}
 
 func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	if r.Method != "POST" {
 		m := &resMessage{Success: false, Message: "Invalid request method: " + r.Method}
 		log.Println(m.Message)
@@ -59,7 +62,6 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if ct != "application/json" {
 		m := &resMessage{Success: false, Message: "Invalid Content-Type: " + ct}
 		log.Println(m.Message)
-		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(m)
 		return
 	}
@@ -71,16 +73,47 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		m := &resMessage{Success: false, Message: "Error decoding JSON request: " + err.Error()}
 		log.Println(m.Message)
-		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(m)
 		return
+	}
+
+	if msg.Method == "start" {
+		path, ok := msg.Arguments["path"]
+		if !ok {
+			m := &resMessage{Success: false, Message: "No movie path provided."}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+
+		var position = time.Duration(0)
+		if pos, ok := msg.Arguments["position"]; ok {
+			if p, err := time.ParseDuration(pos); err == nil {
+				position = p
+			}
+		}
+
+		err = a.player.Start(path, position)
+		if err != nil {
+			m := &resMessage{Success: false, Message: "Error trying to start video " + err.Error()}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+	} else if msg.Method == "sendCommad" {
+		err = a.player.SendCommand(msg.Method)
+		if err != nil {
+			m := &resMessage{Success: false, Message: "Error trying to execute command: " + err.Error()}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
 	}
 
 	m := &resMessage{
 		Success: true,
 		Message: fmt.Sprintf("Message Received:\ncomponent: %s\nmethod: %s\narguments: %v\n", msg.Component, msg.Method, msg.Arguments),
 	}
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(m)
 	log.Println(m.Message)
 }
