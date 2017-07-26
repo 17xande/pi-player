@@ -88,9 +88,15 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		var position = time.Duration(0)
 		if pos, ok := msg.Arguments["position"]; ok {
-			if p, err := time.ParseDuration(pos); err == nil {
-				position = p
+			p, err := time.ParseDuration(pos)
+			if err != nil {
+				m := &resMessage{Success: false, Message: "Error converting video position " + err.Error()}
+				log.Println(m.Message)
+				json.NewEncoder(w).Encode(m)
+				return
 			}
+
+			position = p
 		}
 
 		err = a.player.Start(path, position)
@@ -101,13 +107,18 @@ func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if msg.Method == "sendCommad" {
-		err = a.player.SendCommand(msg.Method)
+		err = a.player.SendCommand(msg.Arguments["command"])
 		if err != nil {
 			m := &resMessage{Success: false, Message: "Error trying to execute command: " + err.Error()}
 			log.Println(m.Message)
 			json.NewEncoder(w).Encode(m)
 			return
 		}
+	} else {
+		m := &resMessage{Success: false, Message: "Command not supported"}
+		log.Println(m.Message)
+		json.NewEncoder(w).Encode(m)
+		return
 	}
 
 	m := &resMessage{

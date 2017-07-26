@@ -37,7 +37,7 @@ var commandList = map[string]string{
 // Start starts the player
 func (p *Player) Start(path string, position time.Duration) error {
 	var err error
-	pos := fmt.Sprintf("%d:%d:%d", int(position.Hours()), int(position.Minutes()), int(position.Seconds()))
+	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
 
 	if p.debug {
 		fmt.Println("omxplayer -b -l", pos, path)
