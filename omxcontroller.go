@@ -108,7 +108,15 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			return
 		}
 	} else if p.api.message.Method == "sendCommad" {
-		err := p.SendCommand(p.api.message.Arguments["command"])
+		cmd, ok := p.api.message.Arguments["command"]
+		if !ok {
+			m := &resMessage{Success: false, Message: "No command sent."}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+
+		err := p.SendCommand(cmd)
 		if err != nil {
 			m := &resMessage{Success: false, Message: "Error trying to execute command: " + err.Error()}
 			log.Println(m.Message)
