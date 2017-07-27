@@ -46,7 +46,6 @@ func (p *Player) Start(path string, position time.Duration) error {
 
 	if p.debug {
 		fmt.Println("omxplayer -b -l", pos, path)
-		p.pipeIn = os.Stdout
 		return nil
 	}
 	p.command = exec.Command("omxplayer", "-b", "-l", pos, path)
@@ -75,6 +74,10 @@ func (p *Player) SendCommand(command string) error {
 
 // Handles requets to the player api
 func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
+	if p.debug {
+		p.pipeIn = os.Stdout
+	}
+
 	if p.api.message.Method == "start" {
 		path, ok := p.api.message.Arguments["path"]
 		if !ok {
