@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -11,9 +14,11 @@ import (
 
 // Player represents the omxplayer
 type Player struct {
-	command *exec.Cmd
-	pipeIn  io.WriteCloser
-	debug   bool
+	api      apiHandler
+	command  *exec.Cmd
+	pipeIn   io.WriteCloser
+	debug    bool
+	playlist playlist
 }
 
 var commandList = map[string]string{
@@ -66,4 +71,51 @@ func (p *Player) SendCommand(command string) error {
 	_, err := p.pipeIn.Write(b)
 
 	return err
+}
+
+// Handles requets to the player api
+func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
+	if p.api.message.Method == "start" {
+		path, ok := p.api.message.Arguments["path"]
+		if !ok {
+			m := &resMessage{Success: false, Message: "No movie path provided."}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+
+		var position = time.Duration(0)
+		if pos, ok := p.api.message.Arguments["position"]; ok {
+			p, err := time.ParseDuration(pos)
+			if err != nil {
+				m := &resMessage{Success: false, Message: "Error converting video position " + err.Error()}
+				log.Println(m.Message)
+				json.NewEncoder(w).Encode(m)
+				return
+			}
+
+			position = p
+		}
+
+		err := p.Start(path, position)
+		if err != nil {
+			m := &resMessage{Success: false, Message: "Error trying to start video " + err.Error()}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+	} else if p.api.message.Method == "sendCommad" {
+		err := p.SendCommand(p.api.message.Arguments["command"])
+		if err != nil {
+			m := &resMessage{Success: false, Message: "Error trying to execute command: " + err.Error()}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+	} else {
+		m := &resMessage{Success: false, Message: "Command not supported"}
+		log.Println(m.Message)
+		json.NewEncoder(w).Encode(m)
+		return
+	}
 }
