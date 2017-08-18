@@ -16,9 +16,16 @@ func main() {
 	debug := flag.Bool("debug", false, "direct commands to stdout instead of omx")
 	flag.Parse()
 
+	if *debug {
+		log.Println("Debug mode enabled")
+	}
+
+	a := apiHandler{debug: *debug}
+	p := Player{api: &a}
+
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
-	http.Handle("/api", &apiHandler{debug: *debug})
 	http.Handle("/control", &templateHandler{filename: "control.html"})
+	http.HandleFunc("/api", a.handle(&p))
 	http.HandleFunc("/", handlerHome)
 	// http.HandleFunc("/command", handlerCommand(&p))
 
@@ -72,51 +79,52 @@ type apiHandler struct {
 	message reqMessage
 }
 
-// ServeHTTP handles all calls to the API
-func (a *apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+// handle handles all calls to the API
+func (a *apiHandler) handle(p *Player) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 
-	// handle POST requests
-	if r.Method != "POST" {
-		m := &resMessage{Success: false, Message: "Invalid request method: " + r.Method}
-		log.Println(m.Message)
+		// handle POST requests
+		if r.Method != "POST" {
+			m := &resMessage{Success: false, Message: "Invalid request method: " + r.Method}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+
+		// handle only application/json requests
+		ct := r.Header.Get("Content-Type")
+		if ct != "application/json" {
+			m := &resMessage{Success: false, Message: "Invalid Content-Type: " + ct}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+
+		// decode message
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&a.message)
+		defer r.Body.Close()
+		if err != nil {
+			m := &resMessage{Success: false, Message: "Error decoding JSON request: " + err.Error()}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+
+		// displach execution based on which component was called
+		// in this case, the Player component
+		if a.message.Component == "player" {
+			p.ServeHTTP(w, r)
+			return
+		}
+
+		// return a generic success message for debugging
+		m := &resMessage{
+			Success: true,
+			Message: fmt.Sprintf("Message Received:\ncomponent: %s\nmethod: %s\narguments: %v\n", a.message.Component, a.message.Method, a.message.Arguments),
+		}
 		json.NewEncoder(w).Encode(m)
-		return
-	}
-
-	// handle only application/json requests
-	ct := r.Header.Get("Content-Type")
-	if ct != "application/json" {
-		m := &resMessage{Success: false, Message: "Invalid Content-Type: " + ct}
 		log.Println(m.Message)
-		json.NewEncoder(w).Encode(m)
-		return
 	}
-
-	// decode message
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&a.message)
-	defer r.Body.Close()
-	if err != nil {
-		m := &resMessage{Success: false, Message: "Error decoding JSON request: " + err.Error()}
-		log.Println(m.Message)
-		json.NewEncoder(w).Encode(m)
-		return
-	}
-
-	// displach execution based on which component was called
-	// in this case, the Player component
-	if a.message.Component == "player" {
-		p := Player{api: *a, debug: a.debug}
-		p.ServeHTTP(w, r)
-		// return
-	}
-
-	// return a generic success message for debugging
-	m := &resMessage{
-		Success: true,
-		Message: fmt.Sprintf("Message Received:\ncomponent: %s\nmethod: %s\narguments: %v\n", a.message.Component, a.message.Method, a.message.Arguments),
-	}
-	json.NewEncoder(w).Encode(m)
-	log.Println(m.Message)
 }

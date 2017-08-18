@@ -14,10 +14,9 @@ import (
 
 // Player represents the omxplayer
 type Player struct {
-	api      apiHandler
+	api      *apiHandler
 	command  *exec.Cmd
 	pipeIn   io.WriteCloser
-	debug    bool
 	playlist playlist
 }
 
@@ -44,11 +43,12 @@ func (p *Player) Start(path string, position time.Duration) error {
 	var err error
 	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
 
-	if p.debug {
-		fmt.Println("omxplayer -b -l", pos, path)
-		return nil
+	cmd := "omxplayer"
+
+	if p.api.debug {
+		cmd = "echo"
 	}
-	p.command = exec.Command("omxplayer", "-b", "-l", pos, path)
+	p.command = exec.Command(cmd, "-b", "-l", pos, path)
 	p.pipeIn, err = p.command.StdinPipe()
 
 	if err != nil {
@@ -56,8 +56,7 @@ func (p *Player) Start(path string, position time.Duration) error {
 	}
 
 	p.command.Stdout = os.Stdout
-	err = p.command.Start()
-	return err
+	return p.command.Start()
 }
 
 // SendCommand sends a command to the omxplayer process
@@ -66,6 +65,8 @@ func (p *Player) SendCommand(command string) error {
 	if !ok {
 		return errors.New("Command not found: " + command)
 	}
+	fmt.Println("cmd:", cmd)
+	fmt.Println("p.pipeIn:", p.pipeIn)
 	b := []byte(cmd)
 	_, err := p.pipeIn.Write(b)
 
@@ -74,10 +75,6 @@ func (p *Player) SendCommand(command string) error {
 
 // Handles requets to the player api
 func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
-	if p.debug {
-		p.pipeIn = os.Stdout
-	}
-
 	if p.api.message.Method == "start" {
 		path, ok := p.api.message.Arguments["path"]
 		if !ok {
@@ -102,12 +99,18 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 
 		err := p.Start(path, position)
 		if err != nil {
-			m := &resMessage{Success: false, Message: "Error trying to start video " + err.Error()}
+			m := &resMessage{Success: false, Message: "Error trying to start video: " + err.Error()}
 			log.Println(m.Message)
 			json.NewEncoder(w).Encode(m)
 			return
 		}
-	} else if p.api.message.Method == "sendCommad" {
+
+		m := &resMessage{Success: true, Message: "Video Started"}
+		json.NewEncoder(w).Encode(m)
+		return
+	}
+
+	if p.api.message.Method == "sendCommad" {
 		cmd, ok := p.api.message.Arguments["command"]
 		if !ok {
 			m := &resMessage{Success: false, Message: "No command sent."}
@@ -123,10 +126,14 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			json.NewEncoder(w).Encode(m)
 			return
 		}
-	} else {
-		m := &resMessage{Success: false, Message: "Command not supported"}
-		log.Println(m.Message)
+
+		m := &resMessage{Success: true, Message: "Command sent and executed"}
 		json.NewEncoder(w).Encode(m)
 		return
 	}
+
+	m := &resMessage{Success: false, Message: "Method not supported"}
+	log.Println(m.Message)
+	json.NewEncoder(w).Encode(m)
+	return
 }
