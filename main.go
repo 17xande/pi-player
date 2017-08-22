@@ -22,28 +22,38 @@ func main() {
 	}
 
 	data, err := ioutil.ReadFile("config.json")
-	log.Println(string(data))
 	var conf config
 	if err != nil {
-		log.Println("Error reading config file: ", err)
-		return
+		log.Fatal("Error reading config file: ", err)
 	}
 
 	err = json.Unmarshal(data, &conf)
 	if err != nil {
-		log.Println("Error unmarshalling config file: ", err)
-		return
+		log.Fatal("Error unmarshalling config file: ", err)
 	}
 
 	if *debug {
 		log.Println("Config file -> Directory: ", conf)
 	}
 
+	files, err := ioutil.ReadDir(conf.Directory)
+	if err != nil {
+		log.Fatal("Error reading directory: ", conf.Directory, err)
+	}
+
 	a := apiHandler{debug: *debug}
 	p := Player{api: &a}
 
+	tempControl := templateHandler{
+		filename: "control.html",
+		data: map[string]interface{}{
+			"directory": conf.Directory,
+			"files":     files,
+		},
+	}
+
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
-	http.Handle("/control", &templateHandler{filename: "control.html"})
+	http.Handle("/control", &tempControl)
 	http.HandleFunc("/api", a.handle(&p))
 	http.HandleFunc("/", handlerHome)
 	// http.HandleFunc("/command", handlerCommand(&p))
@@ -63,7 +73,7 @@ type templateHandler struct {
 	once     sync.Once
 	filename string
 	templ    *template.Template
-	data     map[string]string
+	data     map[string]interface{}
 }
 
 // ServeHTTP handles HTTP requests for the templates

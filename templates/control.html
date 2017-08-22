@@ -17,9 +17,15 @@
     <button data-command="chapterPrevious">Previous Chapter</button>
   </div>
   <div>
-    <h2>Playlist</h2>
+    <h2>Directory</h2>
+    <h3>{{.directory}}</h3>
+  </div>
+  <div>
+    <h2>Files</h2>
     <ul>
-      <li>item1</li>
+      {{range .files}}
+        <li>{{.}}</li>
+      {{end}}
     </ul>
   </div>
   <script src="/assets/js/control.js"></script>
