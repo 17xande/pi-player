@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -20,6 +21,24 @@ func main() {
 		log.Println("Debug mode enabled")
 	}
 
+	data, err := ioutil.ReadFile("config.json")
+	log.Println(string(data))
+	var conf config
+	if err != nil {
+		log.Println("Error reading config file: ", err)
+		return
+	}
+
+	err = json.Unmarshal(data, &conf)
+	if err != nil {
+		log.Println("Error unmarshalling config file: ", err)
+		return
+	}
+
+	if *debug {
+		log.Println("Config file -> Directory: ", conf)
+	}
+
 	a := apiHandler{debug: *debug}
 	p := Player{api: &a}
 
@@ -30,16 +49,21 @@ func main() {
 	// http.HandleFunc("/command", handlerCommand(&p))
 
 	log.Printf("Listening on port %s\n", *addr)
-	err := http.ListenAndServe(*addr, nil)
+	err = http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
+}
+
+type config struct {
+	Directory string
 }
 
 type templateHandler struct {
 	once     sync.Once
 	filename string
 	templ    *template.Template
+	data     map[string]string
 }
 
 // ServeHTTP handles HTTP requests for the templates
@@ -48,12 +72,12 @@ func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// and stores their result. If they are called again it just returns the stored result.
 	// t.once.Do(func(){
 	t.templ = template.Must(template.ParseFiles(filepath.Join("templates", t.filename)))
-	// })
-	data := map[string]string{
-		"Host": r.Host,
-	}
+	// // })
+	// data := map[string]string{
+	// 	"Host": r.Host,
+	// }
 
-	t.templ.Execute(w, data)
+	t.templ.Execute(w, t.data)
 }
 
 // Handles requests to the index page as well as any other requests
