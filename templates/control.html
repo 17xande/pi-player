@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Controller</title>
+  <link rel="stylesheet" href="/assets/css/control.css">
 </head>
 <body>
-  <div>
+  <div id="divControls">
     <h1>Controls</h1>
+    <p>Currently playing: <span id="spPlaying"></span></p>
     <button data-command="pauseResume">Play/Pause</button>
     <button data-command="quit">Stop</button>
     <button data-command="rewind">Rewind</button>
@@ -17,16 +19,27 @@
     <button data-command="chapterPrevious">Previous Chapter</button>
   </div>
   <div>
-    <h2>Directory</h2>
-    <h3>{{.directory}}</h3>
+    <h2>Playlist</h2>
+    <!-- <button id="btnRemove">Remove from Playlist</button> -->
+    <button id="btnStart">GO</button>
+    <ul id="ulPlaylist">
+      {{range .files}}
+        <li>{{.Name}}</li>
+      {{end}}
+    </ul>
   </div>
   <div>
     <h2>Files</h2>
-    <ul>
+    <!-- <button id="btnAdd">Add to Playlist</button> -->
+    <ul id="ulFiles">
       {{range .files}}
-        <li>{{.}}</li>
+        <li>{{.Name}}</li>
       {{end}}
     </ul>
+  </div>
+  <div>
+    <h2>Directory</h2>
+    <h3>{{.directory}}</h3>
   </div>
   <script src="/assets/js/control.js"></script>
 </body>

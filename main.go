@@ -42,7 +42,7 @@ func main() {
 	}
 
 	a := apiHandler{debug: *debug}
-	p := Player{api: &a}
+	p := Player{api: &a, conf: conf}
 
 	tempControl := templateHandler{
 		filename: "control.html",

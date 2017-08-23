@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type Player struct {
 	command  *exec.Cmd
 	pipeIn   io.WriteCloser
 	playlist playlist
+	conf     config
 }
 
 var commandList = map[string]string{
@@ -39,7 +41,7 @@ var commandList = map[string]string{
 }
 
 // Start starts the player
-func (p *Player) Start(path string, position time.Duration) error {
+func (p *Player) Start(fileName string, position time.Duration) error {
 	var err error
 	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
 
@@ -48,7 +50,7 @@ func (p *Player) Start(path string, position time.Duration) error {
 	if p.api.debug {
 		cmd = "echo"
 	}
-	p.command = exec.Command(cmd, "-b", "-l", pos, path)
+	p.command = exec.Command(cmd, "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 	p.pipeIn, err = p.command.StdinPipe()
 
 	if err != nil {
@@ -76,9 +78,9 @@ func (p *Player) SendCommand(command string) error {
 // Handles requets to the player api
 func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 	if p.api.message.Method == "start" {
-		path, ok := p.api.message.Arguments["path"]
+		fileName, ok := p.api.message.Arguments["path"]
 		if !ok {
-			m := &resMessage{Success: false, Message: "No movie path provided."}
+			m := &resMessage{Success: false, Message: "No movie name provided."}
 			log.Println(m.Message)
 			json.NewEncoder(w).Encode(m)
 			return
@@ -97,7 +99,7 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			position = p
 		}
 
-		err := p.Start(path, position)
+		err := p.Start(fileName, position)
 		if err != nil {
 			m := &resMessage{Success: false, Message: "Error trying to start video: " + err.Error()}
 			log.Println(m.Message)
