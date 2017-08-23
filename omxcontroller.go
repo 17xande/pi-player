@@ -66,7 +66,7 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 		if p.api.debug {
 			cmd = "echo"
 		}
-		p.command = exec.Command(cmd, "-a", "--noverbose", "-blend 1000", path.Join(p.conf.Directory, fileName))
+		p.command = exec.Command(cmd, "-T 1", "-a", "--noverbose", "-blend 1000", path.Join(p.conf.Directory, fileName))
 	} else {
 		return errors.New("File extension not supported: " + ext)
 	}
