@@ -41,8 +41,7 @@ function sendCommand(e) {
     component: "player",
     method: "sendCommand",
     arguments: {
-      command: command,
-      path: playlist.selected.textContent
+      command: command
     }
   };
 

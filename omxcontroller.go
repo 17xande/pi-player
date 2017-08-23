@@ -27,7 +27,7 @@ var commandList = map[string]string{
 	"speedDecrease":   "2",
 	"rewind":          "<",
 	"fastForward":     ">",
-	"chatperPrevious": "i",
+	"chapterPrevious": "i",
 	"chapterNext":     "o",
 	"exit":            "q",
 	"quit":            "q",
@@ -67,16 +67,21 @@ func (p *Player) SendCommand(command string) error {
 	if !ok {
 		return errors.New("Command not found: " + command)
 	}
-	fmt.Println("cmd:", cmd)
-	fmt.Println("p.pipeIn:", p.pipeIn)
-	b := []byte(cmd)
-	_, err := p.pipeIn.Write(b)
+
+	var err error
+	if p.api.debug {
+		fmt.Println("cmd:", cmd)
+	} else {
+		b := []byte(cmd)
+		_, err = p.pipeIn.Write(b)
+	}
 
 	return err
 }
 
 // Handles requets to the player api
 func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
+
 	if p.api.message.Method == "start" {
 		fileName, ok := p.api.message.Arguments["path"]
 		if !ok {
@@ -112,7 +117,7 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 		return
 	}
 
-	if p.api.message.Method == "sendCommad" {
+	if p.api.message.Method == "sendCommand" {
 		cmd, ok := p.api.message.Arguments["command"]
 		if !ok {
 			m := &resMessage{Success: false, Message: "No command sent."}

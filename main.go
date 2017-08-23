@@ -146,6 +146,10 @@ func (a *apiHandler) handle(p *Player) http.HandlerFunc {
 			return
 		}
 
+		if a.debug {
+			log.Println("message received: ", a.message)
+		}
+
 		// displach execution based on which component was called
 		// in this case, the Player component
 		if a.message.Component == "player" {
