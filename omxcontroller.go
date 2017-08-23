@@ -45,12 +45,32 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 	var err error
 	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
 
-	cmd := "omxplayer"
-
-	if p.api.debug {
-		cmd = "echo"
+	picExt := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".bmp":  true,
+		".png":  true,
 	}
-	p.command = exec.Command(cmd, "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
+
+	ext := path.Ext(fileName)
+
+	// check if supported image extension
+	if ext == ".mp4" {
+		cmd := "omxplayer"
+		if p.api.debug {
+			cmd = "echo"
+		}
+		p.command = exec.Command(cmd, "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
+	} else if picExt[ext] {
+		cmd := "fbi"
+		if p.api.debug {
+			cmd = "echo"
+		}
+		p.command = exec.Command(cmd, "-a", "--noverbose", "-blend 1000", path.Join(p.conf.Directory, fileName))
+	} else {
+		return errors.New("File extension not supported: " + ext)
+	}
+
 	p.pipeIn, err = p.command.StdinPipe()
 
 	if err != nil {

@@ -13,8 +13,8 @@
     <p>Currently playing: <span id="spPlaying"></span></p>
     <button data-command="pauseResume">Play/Pause</button>
     <button data-command="quit">Stop</button>
-    <button data-command="rewind">Rewind</button>
-    <button data-command="fastForward">Fast Forward</button>
+    <button data-command="seekBack30">Rewind</button>
+    <button data-command="seekForward30">Fast Forward</button>
     <button data-command="chapterNext">Next Chapter</button>
     <button data-command="chapterPrevious">Previous Chapter</button>
   </div>
@@ -28,9 +28,9 @@
       {{end}}
     </ul>
   </div>
-  <div>
+  <!-- <div>
     <h2>Files</h2>
-    <!-- <button id="btnAdd">Add to Playlist</button> -->
+    <button id="btnAdd">Add to Playlist</button>
     <ul id="ulFiles">
       {{range .files}}
         <li>{{.Name}}</li>
@@ -40,7 +40,7 @@
   <div>
     <h2>Directory</h2>
     <h3>{{.directory}}</h3>
-  </div>
+  </div> -->
   <script src="/assets/js/control.js"></script>
 </body>
 </html>
