@@ -127,7 +127,7 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 		}
 
 		// quit the current video to start the next
-		if !p.command.ProcessState.Exited() {
+		if p.command != nil && p.command.ProcessState.Exited() {
 			err := p.SendCommand("quit")
 
 			if err != nil {
