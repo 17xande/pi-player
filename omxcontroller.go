@@ -50,6 +50,14 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 	if p.api.debug {
 		cmd = "echo"
 	}
+
+	// quit the current video to start the next
+	if p.command != nil && p.command.Process != nil {
+		if err := p.SendCommand("quit"); err != nil {
+			return err
+		}
+	}
+
 	p.command = exec.Command(cmd, "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 	p.pipeIn, err = p.command.StdinPipe()
 
@@ -124,18 +132,6 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			log.Println(m.Message)
 			json.NewEncoder(w).Encode(m)
 			return
-		}
-
-		// quit the current video to start the next
-		if p.command != nil && !p.command.ProcessState.Exited() {
-			err := p.SendCommand("quit")
-
-			if err != nil {
-				m := &resMessage{Success: false, Message: "Error trying to quit video: " + err.Error()}
-				log.Println(m.Message)
-				json.NewEncoder(w).Encode(m)
-				return
-			}
 		}
 
 		err := p.Start(fileName, position)
