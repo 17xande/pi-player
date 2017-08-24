@@ -36,24 +36,11 @@ func main() {
 		log.Println("Config file -> Directory: ", conf)
 	}
 
-	files, err := ioutil.ReadDir(conf.Directory)
-	if err != nil {
-		log.Fatal("Error reading directory: ", conf.Directory, err)
-	}
-
 	a := apiHandler{debug: *debug}
 	p := Player{api: &a, conf: conf}
 
-	tempControl := templateHandler{
-		filename: "control.html",
-		data: map[string]interface{}{
-			"directory": conf.Directory,
-			"files":     files,
-		},
-	}
-
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
-	http.Handle("/control", &tempControl)
+	http.Handle("/control", p.handleControl())
 	http.HandleFunc("/api", a.handle(&p))
 	http.HandleFunc("/", handlerHome)
 	// http.HandleFunc("/command", handlerCommand(&p))

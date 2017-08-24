@@ -23,7 +23,7 @@
     <!-- <button id="btnRemove">Remove from Playlist</button> -->
     <button id="btnStart">GO</button>
     <ul id="ulPlaylist">
-      {{range .files}}
+      {{range .playlist.Items}}
         <li>{{.Name}}</li>
       {{end}}
     </ul>

@@ -3,12 +3,13 @@ package main
 import (
 	"errors"
 	"io/ioutil"
+	"os"
 	"path"
 )
 
 type playlist struct {
-	name  string
-	items []string
+	Name  string
+	Items []os.FileInfo
 }
 
 func (p *playlist) fromFolder(folderPath string) error {
@@ -21,7 +22,7 @@ func (p *playlist) fromFolder(folderPath string) error {
 	// filter out all files except for .mp4s
 	for _, file := range files {
 		if path.Ext(file.Name()) == ".mp4" {
-			p.items = append(p.items, file.Name())
+			p.Items = append(p.Items, file)
 		}
 	}
 

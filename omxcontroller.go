@@ -144,3 +144,22 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 	json.NewEncoder(w).Encode(m)
 	return
 }
+
+// Scan the folder for new files every time the page reloads
+func (p *Player) handleControl() http.Handler {
+	err := p.playlist.fromFolder(p.conf.Directory)
+	if err != nil {
+		log.Println("Error tring to read files from directory: ", err)
+	}
+
+	tempControl := templateHandler{
+		filename: "control.html",
+		data: map[string]interface{}{
+			"directory": p.conf.Directory,
+			"playlist":  p.playlist,
+			"error":     err,
+		},
+	}
+
+	return &tempControl
+}
