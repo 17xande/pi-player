@@ -69,6 +69,9 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 func (p *Player) wait() {
 	// wait for the process to end
 	p.command.Wait()
+	if p.api.debug {
+		log.Println("Process ended")
+	}
 	p.playlist.current = nil
 }
 
@@ -116,7 +119,6 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 		}
 
 		i := p.playlist.getIndex(fileName)
-
 		if i == -1 {
 			m := &resMessage{Success: false, Message: "Trying to play a video that's not in the playlist: " + fileName}
 			log.Println(m.Message)
@@ -125,7 +127,7 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 		}
 
 		// quit the current video to start the next
-		if p.playlist.current != nil {
+		if !p.command.ProcessState.Exited() {
 			err := p.SendCommand("quit")
 
 			if err != nil {
@@ -136,8 +138,6 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			}
 		}
 
-		p.playlist.current = p.playlist.Items[i]
-
 		err := p.Start(fileName, position)
 		if err != nil {
 			m := &resMessage{Success: false, Message: "Error trying to start video: " + err.Error()}
@@ -145,6 +145,8 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			json.NewEncoder(w).Encode(m)
 			return
 		}
+
+		p.playlist.current = p.playlist.Items[i]
 
 		m := &resMessage{Success: true, Message: fileName}
 		json.NewEncoder(w).Encode(m)
