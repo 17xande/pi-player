@@ -1,6 +1,7 @@
 "use strict";
 
 const btns = document.querySelectorAll('#divControls button');
+const btnsPlaylist = document.querySelectorAll('#divControlPlaylist');
 const btnStart = document.querySelector('#btnStart');
 const spPlaying = document.querySelector('#spPlaying');
 const ulFiles = document.querySelector('#ulPlaylist');
@@ -13,6 +14,7 @@ let playlist = {
 
 ulPlaylist.addEventListener('click', plSelect);
 btns.forEach(btn => btn.addEventListener('click', sendCommand));
+btnsPlaylist.forEach(btn => btn.addEventListener('click', callMethod));
 btnStart.addEventListener('click', startItem);
 
 function plSelect(e) {
@@ -21,6 +23,15 @@ function plSelect(e) {
   }
   playlist.selected = e.target;
   e.target.classList.add('selected');
+}
+
+function callMethod(e) {
+  let reqBody = {
+    component: "player",
+    method: e.target.dataset["method"]
+  };
+
+  callApi(reqBody)
 }
 
 function startItem(e) {
@@ -32,7 +43,12 @@ function startItem(e) {
     }
   };
 
-  callApi(reqBody);
+  callApi(reqBody)
+    .then(json => {
+      if (json.success) {
+        spPlaying.textContent = json.message
+      }
+    });
 }
 
 function sendCommand(e) {
@@ -45,7 +61,7 @@ function sendCommand(e) {
     }
   };
 
-  callApi(reqBody)
+  callApi(reqBody);
 }
 
 function callApi(reqBody) {
@@ -58,8 +74,11 @@ function callApi(reqBody) {
     body: JSON.stringify(reqBody)
   }
 
-  fetch(`${window.location.origin}/api`, myInit)
+  return fetch(`${window.location.origin}/api`, myInit)
     .then(res => res.json())
-    .then(json => console.log(json))
+    .then(json => {
+      console.log(json);
+      return json;
+    })
     .catch(err => console.error(err));
 }

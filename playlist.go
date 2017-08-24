@@ -8,8 +8,9 @@ import (
 )
 
 type playlist struct {
-	Name  string
-	Items []os.FileInfo
+	Name    string
+	Items   []os.FileInfo
+	current os.FileInfo
 }
 
 func (p *playlist) fromFolder(folderPath string) error {
@@ -27,4 +28,14 @@ func (p *playlist) fromFolder(folderPath string) error {
 	}
 
 	return nil
+}
+
+func (p *playlist) getIndex(fileName string) int {
+	for i, item := range p.Items {
+		if item.Name() == fileName {
+			return i
+		}
+	}
+
+	return -1
 }

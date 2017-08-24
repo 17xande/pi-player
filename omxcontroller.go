@@ -104,6 +104,20 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			position = p
 		}
 
+		i := p.playlist.getIndex(fileName)
+
+		if i == -1 {
+			m := &resMessage{Success: false, Message: "Trying to play a video that's not in the playlist: " + fileName}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+
+		// Do I have to stop the current video before starting the next?
+		// Or will omxplayer take care of that for me?
+
+		p.playlist.current = p.playlist.Items[i]
+
 		err := p.Start(fileName, position)
 		if err != nil {
 			m := &resMessage{Success: false, Message: "Error trying to start video: " + err.Error()}
@@ -112,7 +126,23 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			return
 		}
 
-		m := &resMessage{Success: true, Message: "Video Started"}
+		m := &resMessage{Success: true, Message: fileName}
+		json.NewEncoder(w).Encode(m)
+		return
+	}
+
+	if p.api.message.Method == "next" {
+		log.Println("'next' method called!")
+
+		m := &resMessage{Success: true, Message: "Next video started"}
+		json.NewEncoder(w).Encode(m)
+		return
+	}
+
+	if p.api.message.Method == "previous" {
+		log.Println("'previous' method called!")
+
+		m := &resMessage{Success: true, Message: "Previous video started"}
 		json.NewEncoder(w).Encode(m)
 		return
 	}
