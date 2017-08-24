@@ -52,7 +52,7 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 	}
 
 	// quit the current video to start the next
-	if p.command != nil && p.command.Process != nil {
+	if p.command != nil && p.command.ProcessState == nil {
 		if err := p.SendCommand("quit"); err != nil {
 			return err
 		}
