@@ -58,7 +58,18 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 	}
 
 	p.command.Stdout = os.Stdout
-	return p.command.Start()
+	err = p.command.Start()
+
+	// wait for the program to exit
+	go p.wait()
+
+	return err
+}
+
+func (p *Player) wait() {
+	// wait for the process to end
+	p.command.Wait()
+	p.playlist.current = nil
 }
 
 // SendCommand sends a command to the omxplayer process
@@ -113,8 +124,17 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			return
 		}
 
-		// Do I have to stop the current video before starting the next?
-		// Or will omxplayer take care of that for me?
+		// quit the current video to start the next
+		if p.playlist.current != nil {
+			err := p.SendCommand("quit")
+
+			if err != nil {
+				m := &resMessage{Success: false, Message: "Error trying to quit video: " + err.Error()}
+				log.Println(m.Message)
+				json.NewEncoder(w).Encode(m)
+				return
+			}
+		}
 
 		p.playlist.current = p.playlist.Items[i]
 
