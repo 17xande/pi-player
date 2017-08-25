@@ -80,7 +80,7 @@ func (p *Player) wait() {
 	if p.api.debug {
 		log.Println("Process ended")
 	}
-	p.playlist.current = nil
+	// p.playlist.current = nil
 }
 
 // SendCommand sends a command to the omxplayer process
@@ -134,7 +134,7 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			return
 		}
 
-		err := p.Start(fileName, position)
+		err := p.Start(p.playlist.Items[i].Name(), position)
 		if err != nil {
 			m := &resMessage{Success: false, Message: "Error trying to start video: " + err.Error()}
 			log.Println(m.Message)
@@ -144,23 +144,39 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 
 		p.playlist.current = p.playlist.Items[i]
 
-		m := &resMessage{Success: true, Message: fileName}
+		m := &resMessage{Success: true, Message: p.playlist.current.Name()}
 		json.NewEncoder(w).Encode(m)
 		return
 	}
 
 	if p.api.message.Method == "next" {
-		log.Println("'next' method called!")
+		err := p.next()
+		if err != nil {
+			m := &resMessage{Success: false, Message: "Error going to next video: " + err.Error()}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
 
-		m := &resMessage{Success: true, Message: "Next video started"}
+		m := &resMessage{
+			Success: true,
+			Message: map[string]interface{}{
+				"item": p.playlist.current.Name(),
+			}}
 		json.NewEncoder(w).Encode(m)
 		return
 	}
 
 	if p.api.message.Method == "previous" {
-		log.Println("'previous' method called!")
+		err := p.previous()
+		if err != nil {
+			m := &resMessage{Success: false, Message: "Error going to previous video: " + err.Error()}
+			log.Println(m.Message)
+			json.NewEncoder(w).Encode(m)
+			return
+		}
 
-		m := &resMessage{Success: true, Message: "Previous video started"}
+		m := &resMessage{Success: true, Message: p.playlist.current.Name()}
 		json.NewEncoder(w).Encode(m)
 		return
 	}
@@ -210,4 +226,26 @@ func (p *Player) handleControl() http.Handler {
 	}
 
 	return &tempControl
+}
+
+func (p *Player) next() error {
+	n := p.playlist.getNext()
+	err := p.Start(n.Name(), time.Duration(0))
+
+	if err == nil {
+		p.playlist.current = n
+	}
+
+	return err
+}
+
+func (p *Player) previous() error {
+	n := p.playlist.getPrevious()
+	err := p.Start(n.Name(), time.Duration(0))
+
+	if err == nil {
+		p.playlist.current = n
+	}
+
+	return err
 }

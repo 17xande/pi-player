@@ -42,11 +42,11 @@ func (p *playlist) getIndex(fileName string) int {
 
 func (p *playlist) getNext() os.FileInfo {
 	i := p.getIndex(p.current.Name())
-	if i+1 > len(p.Items) {
+	if i+1 > len(p.Items)-1 {
 		return p.Items[0]
 	}
 
-	return p.Items[i]
+	return p.Items[i+1]
 }
 
 func (p *playlist) getPrevious() os.FileInfo {
@@ -55,5 +55,5 @@ func (p *playlist) getPrevious() os.FileInfo {
 		return p.Items[len(p.Items)-1]
 	}
 
-	return p.Items[i]
+	return p.Items[i-1]
 }

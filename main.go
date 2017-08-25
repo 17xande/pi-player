@@ -123,6 +123,7 @@ func (a *apiHandler) handle(p *Player) http.HandlerFunc {
 		}
 
 		// decode message
+		a.message = reqMessage{}
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&a.message)
 		defer r.Body.Close()
