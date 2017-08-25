@@ -13,7 +13,7 @@
   <div class="container">
     <div id="divControls">
       <h1>Controls</h1>
-      <p>Currently playing: <span id="spPlaying"></span></p>
+      <p>Currently playing: <span id="spCurrent"></span></p>
       <button data-command="pauseResume">Play/Pause</button>
       <button data-command="quit">Stop</button>
       <button data-command="seekBack30">Rewind</button>
@@ -26,7 +26,7 @@
     <div>
       <h2>Playlist</h2>
       <!-- <button id="btnRemove">Remove from Playlist</button> -->
-      <button id="btnGo">GO</button>
+      <button id="btnStart">Play Item</button>
       <table id="tblPlaylist">
         {{range .playlist.Items}}
           <tr><td>{{.Name}}<td></tr>

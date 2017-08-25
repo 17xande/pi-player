@@ -1,21 +1,24 @@
 "use strict";
 
-const btns = document.querySelectorAll('#divControls button');
-const btnsPlaylist = document.querySelectorAll('#divControlPlaylist');
-const btnGo = document.querySelector('#btnGo');
-const spPlaying = document.querySelector('#spPlaying');
-const tblFiles = document.querySelector('#tblPlaylist');
+let controls = {
+  btns: document.querySelectorAll('#divControls button'),
+  btnsPlaylist: document.querySelectorAll('#divControlPlaylist'),
+  btnStart: document.querySelector('#btnStart'),
+  spCurrent: document.querySelector('#spCurrent'),
+  tblPlaylist: document.querySelector('#tblPlaylist')
+}
+
 
 let playlist = {
-  items: Array.from(document.querySelectorAll('#tblPlaylist td')).map(el => el.textContent),
+  items: Array.from(controls.tblPlaylist.querySelectorAll('td')).map(el => el.textContent),
   selected: null,
   playPause: e => console.log(e)
 }
 
-tblPlaylist.addEventListener('click', plSelect);
-btns.forEach(btn => btn.addEventListener('click', sendCommand));
-btnsPlaylist.forEach(btn => btn.addEventListener('click', callMethod));
-btnGo.addEventListener('click', startItem);
+controls.tblPlaylist.addEventListener('click', plSelect);
+controls.btns.forEach(btn => btn.addEventListener('click', sendCommand));
+controls.btnsPlaylist.forEach(btn => btn.addEventListener('click', callMethod));
+controls.btnStart.addEventListener('click', startItem);
 
 function plSelect(e) {
   if (playlist.selected != null) {
@@ -46,7 +49,7 @@ function startItem(e) {
   callApi(reqBody)
     .then(json => {
       if (json.success) {
-        spPlaying.textContent = json.message
+        spCurrent.textContent = json.message
       }
     });
 }
