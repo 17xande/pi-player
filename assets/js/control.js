@@ -2,7 +2,7 @@
 
 const btns = document.querySelectorAll('#divControls button');
 const btnsPlaylist = document.querySelectorAll('#divControlPlaylist');
-const btnStart = document.querySelector('#btnStart');
+const btnGo = document.querySelector('#btnGo');
 const spPlaying = document.querySelector('#spPlaying');
 const tblFiles = document.querySelector('#tblPlaylist');
 
@@ -15,7 +15,7 @@ let playlist = {
 tblPlaylist.addEventListener('click', plSelect);
 btns.forEach(btn => btn.addEventListener('click', sendCommand));
 btnsPlaylist.forEach(btn => btn.addEventListener('click', callMethod));
-btnStart.addEventListener('click', startItem);
+btnGo.addEventListener('click', startItem);
 
 function plSelect(e) {
   if (playlist.selected != null) {
