@@ -1,4 +1,5 @@
 pi-player
-.DS-Store
+.DS_Store
 launch.json
 debug
+node_modules

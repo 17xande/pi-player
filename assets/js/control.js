@@ -4,15 +4,15 @@ const btns = document.querySelectorAll('#divControls button');
 const btnsPlaylist = document.querySelectorAll('#divControlPlaylist');
 const btnStart = document.querySelector('#btnStart');
 const spPlaying = document.querySelector('#spPlaying');
-const ulFiles = document.querySelector('#ulPlaylist');
+const tblFiles = document.querySelector('#tblPlaylist');
 
 let playlist = {
-  items: Array.from(document.querySelectorAll('#ulPlaylist li')).map(el => el.textContent),
+  items: Array.from(document.querySelectorAll('#tblPlaylist td')).map(el => el.textContent),
   selected: null,
   playPause: e => console.log(e)
 }
 
-ulPlaylist.addEventListener('click', plSelect);
+tblPlaylist.addEventListener('click', plSelect);
 btns.forEach(btn => btn.addEventListener('click', sendCommand));
 btnsPlaylist.forEach(btn => btn.addEventListener('click', callMethod));
 btnStart.addEventListener('click', startItem);

@@ -5,44 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Controller</title>
+  <link rel="stylesheet" href="/assets/css/milligram.css">
   <link rel="stylesheet" href="/assets/css/control.css">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,400i,700" rel="stylesheet">
 </head>
 <body>
-  <div id="divControls">
-    <h1>Controls</h1>
-    <p>Currently playing: <span id="spPlaying"></span></p>
-    <button data-command="pauseResume">Play/Pause</button>
-    <button data-command="quit">Stop</button>
-    <button data-command="seekBack30">Rewind</button>
-    <button data-command="seekForward30">Fast Forward</button>
+  <div class="container">
+    <div id="divControls">
+      <h1>Controls</h1>
+      <p>Currently playing: <span id="spPlaying"></span></p>
+      <button data-command="pauseResume">Play/Pause</button>
+      <button data-command="quit">Stop</button>
+      <button data-command="seekBack30">Rewind</button>
+      <button data-command="seekForward30">Fast Forward</button>
+    </div>
+    <div id="divControlPlaylist">
+      <button data-method="previous">Previous Video</button>
+      <button data-method="next">Next Video</button>
+    </div>
+    <div>
+      <h2>Playlist</h2>
+      <!-- <button id="btnRemove">Remove from Playlist</button> -->
+      <button id="btnStart">GO</button>
+      <table id="tblPlaylist">
+        {{range .playlist.Items}}
+          <tr><td>{{.Name}}<td></tr>
+        {{end}}
+      </table>
+    </div>
   </div>
-  <div id="divControlPlaylist">
-    <button data-method="previous">Previous Video</button>
-    <button data-method="next">Next Video</button>
-  </div>
-  <div>
-    <h2>Playlist</h2>
-    <!-- <button id="btnRemove">Remove from Playlist</button> -->
-    <button id="btnStart">GO</button>
-    <ul id="ulPlaylist">
-      {{range .playlist.Items}}
-        <li>{{.Name}}</li>
-      {{end}}
-    </ul>
-  </div>
-  <!-- <div>
-    <h2>Files</h2>
-    <button id="btnAdd">Add to Playlist</button>
-    <ul id="ulFiles">
-      {{range .files}}
-        <li>{{.Name}}</li>
-      {{end}}
-    </ul>
-  </div>
-  <div>
-    <h2>Directory</h2>
-    <h3>{{.directory}}</h3>
-  </div> -->
   <script src="/assets/js/control.js"></script>
 </body>
 </html>
