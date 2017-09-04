@@ -5,9 +5,26 @@ let controls = {
   btnsPlaylist: document.querySelectorAll('#divControlPlaylist'),
   btnStart: document.querySelector('#btnStart'),
   spCurrent: document.querySelector('#spCurrent'),
-  tblPlaylist: document.querySelector('#tblPlaylist')
-}
+  tblPlaylist: document.querySelector('#tblPlaylist'),
+  socket: null,
+  flags: {
+    websockets: false
+  }
+};
 
+if (!window["WebSocket"]) {
+  console.warn("Websockets not supported in your browser. Fallback functionality will be used.");
+} else if (controls.flags.websockets) {
+  controls.socket = new WebSocket(`ws://${document.location.host}/control/ws`);
+  controls.socket.addEventListener('close', () => {
+    console.log("Websocket connection closed, falling back...");
+  });
+
+  controls.socket.addEventListener('message', e => {
+    let msg = JSON.parse(e.data);
+    console.log('WS Message received!!: ', msg);
+  });
+}
 
 let playlist = {
   items: Array.from(controls.tblPlaylist.querySelectorAll('td')).map(el => el.textContent),
@@ -25,7 +42,7 @@ function plSelect(e) {
     playlist.selected.classList.remove('selected');
   }
   playlist.selected = e.target;
-  e.target.classList.add('selected');
+  playlist.selected.classList.add('selected');
 }
 
 function callMethod(e) {
@@ -35,6 +52,7 @@ function callMethod(e) {
   };
 
   callApi(reqBody)
+    .then(videoCallback);
 }
 
 function startItem(e) {
@@ -46,12 +64,19 @@ function startItem(e) {
     }
   };
 
-  callApi(reqBody)
-    .then(json => {
-      if (json.success) {
-        spCurrent.textContent = json.message
-      }
+  callApi(reqBody).then(videoCallback);
+}
+
+function videoCallback(json) {
+  if (json.success) {
+    spCurrent.textContent = json.message;
+    let event = {};
+    let items = Array.from(tblPlaylist.querySelectorAll('td'));
+    event.target = items.find(val => {
+      return val.textContent == json.message;
     });
+    plSelect(event);
+  }
 }
 
 function sendCommand(e) {

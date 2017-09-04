@@ -10,5 +10,6 @@ type reqMessage struct {
 // resMessage defines structure for reponse messages for json api
 type resMessage struct {
 	Success bool        `json:"success"`
+	Event   string      `json:"event"`
 	Message interface{} `json:"message"`
 }

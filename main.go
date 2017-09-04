@@ -41,6 +41,7 @@ func main() {
 
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
 	http.Handle("/control", p.handleControl())
+	http.HandleFunc("/control/ws", p.control.handlerWebsocket)
 	http.HandleFunc("/api", a.handle(&p))
 	http.HandleFunc("/", handlerHome)
 	// http.HandleFunc("/command", handlerCommand(&p))
