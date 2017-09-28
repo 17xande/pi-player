@@ -22,7 +22,8 @@ func (p *playlist) fromFolder(folderPath string) error {
 
 	// filter out all files except for .mp4s
 	for _, file := range files {
-		if path.Ext(file.Name()) == ".mp4" {
+		e := path.Ext(file.Name())
+		if e == ".mp4" || e == ".jpg" || e == ".jpeg" || e == ".png" || e == ".html" {
 			p.Items = append(p.Items, file)
 		}
 	}

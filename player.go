@@ -56,12 +56,19 @@ var commandList = map[string]string{
 	"seekForward600":  "\x1b[A",
 }
 
-// Start starts the player
-func (p *Player) Start(fileName string, position time.Duration) error {
+// Open opens the file in the player, it decides which underlying program to use
+// based on the type of file that will be opened.
+func (p *Player) Open(fileName string, position time.Duration) error {
 	var err error
+	var cmd string
 	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
+	ext := path.Ext(fileName)
 
-	cmd := "omxplayer"
+	if ext == ".mp4" {
+		cmd = "omxplayer"
+	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
+		cmd = ""
+	}
 
 	if p.api.debug {
 		cmd = "echo"
@@ -90,8 +97,8 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 	return err
 }
 
+// wait waits for the process to end
 func (p *Player) wait() {
-	// wait for the process to end
 	p.command.Wait()
 	if p.api.debug {
 		log.Println("Process ended")
@@ -149,7 +156,7 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			return
 		}
 
-		err := p.Start(p.playlist.Items[i].Name(), position)
+		err := p.Open(p.playlist.Items[i].Name(), position)
 		if err != nil {
 			m := &resMessage{Success: false, Message: "Error trying to start video: " + err.Error()}
 			log.Println(m.Message)
@@ -245,7 +252,7 @@ func (p *Player) handleControl() http.Handler {
 
 func (p *Player) next() error {
 	n := p.playlist.getNext()
-	err := p.Start(n.Name(), time.Duration(0))
+	err := p.Open(n.Name(), time.Duration(0))
 
 	if err == nil {
 		p.playlist.current = n
@@ -256,7 +263,7 @@ func (p *Player) next() error {
 
 func (p *Player) previous() error {
 	n := p.playlist.getPrevious()
-	err := p.Start(n.Name(), time.Duration(0))
+	err := p.Open(n.Name(), time.Duration(0))
 
 	if err == nil {
 		p.playlist.current = n
