@@ -70,12 +70,12 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 	}
 
 	if p.api.debug {
-		fmt.Printf("%v\n", p.command)
-		return nil
+		p.command = exec.Command("echo", p.command.Args...)
+		fmt.Printf("Command: %#v\n", p.command)
 	}
 
-	// quit the current video to start the next
-	if p.command != nil && p.command.ProcessState == nil {
+	// quit the current process to start the next
+	if p.command.ProcessState != nil && p.command.ProcessState.Exited() == false {
 		if err := p.SendCommand("quit"); err != nil {
 			return err
 		}
