@@ -23,7 +23,7 @@ type Player struct {
 	playlist playlist
 	conf     config
 	control  controller
-	finished bool
+	running  bool
 }
 
 // controller has the websocket connection to the control page
@@ -72,14 +72,16 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 
 	if p.api.debug {
 		p.command = exec.Command("echo", p.command.Args...)
-		fmt.Printf("Command: %#v\n", p.command)
+		// log.Printf("Command: %#v\n", p.command)
 	}
 
 	// quit the current process to start the next
-	if !p.finished {
+	if p.running {
+		log.Println("process is still running, close it")
 		if err := p.SendCommand("quit"); err != nil {
 			return err
 		}
+		p.running = false
 	}
 
 	p.pipeIn, err = p.command.StdinPipe()
@@ -90,7 +92,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 
 	p.command.Stdout = os.Stdout
 	err = p.command.Start()
-	p.finished = false
+	p.running = true
 
 	// wait for the program to exit
 	go p.wait()
@@ -104,7 +106,7 @@ func (p *Player) wait() {
 	if p.api.debug {
 		log.Println("Process ended")
 	}
-	p.finished = true
+	p.running = false
 	// p.playlist.current = nil
 }
 
