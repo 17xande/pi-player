@@ -60,18 +60,18 @@ var commandList = map[string]string{
 // based on the type of file that will be opened.
 func (p *Player) Open(fileName string, position time.Duration) error {
 	var err error
-	var cmd string
 	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
 	ext := path.Ext(fileName)
 
 	if ext == ".mp4" {
-		cmd = "omxplayer"
+		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
-		cmd = ""
+		p.command = exec.Command("chromium-browser", "--kiosk", "--window-size=1920,1080", "--window-position=0,0", path.Join(p.conf.Directory, fileName))
 	}
 
 	if p.api.debug {
-		cmd = "echo"
+		fmt.Printf("%v\n", p.command)
+		return nil
 	}
 
 	// quit the current video to start the next
@@ -81,7 +81,6 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		}
 	}
 
-	p.command = exec.Command(cmd, "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 	p.pipeIn, err = p.command.StdinPipe()
 
 	if err != nil {
