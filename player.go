@@ -68,6 +68,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
 		p.command = exec.Command("chromium-browser", "--kiosk", "--window-size=1920,1080", "--window-position=0,0", path.Join(p.conf.Directory, fileName))
+		p.command.Env = []string{"DISPLAY=:0.0"}
 	}
 
 	if p.api.debug {
@@ -78,8 +79,12 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 	// quit the current process to start the next
 	if p.running {
 		log.Println("process is still running, close it")
-		if err := p.SendCommand("quit"); err != nil {
-			return err
+		if ext == ".mp4" {
+			if err := p.SendCommand("quit"); err != nil {
+				return err
+			}
+		} else {
+			p.command.Process.Kill()
 		}
 		p.running = false
 	}
