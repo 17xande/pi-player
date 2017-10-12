@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Player represents the omxplayer
+// Player is the object that renders images to the screen through omxplayer or chromium-browser
 type Player struct {
 	api      *apiHandler
 	command  *exec.Cmd
@@ -24,6 +24,13 @@ type Player struct {
 	conf     config
 	control  controller
 	running  bool
+	browser  Browser
+}
+
+// Browser represents the chromium-browser process that is used to display web pages and still images to the screen
+type Browser struct {
+	command *exec.Cmd
+	running bool
 }
 
 // controller has the websocket connection to the control page
@@ -67,8 +74,8 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 	if ext == ".mp4" {
 		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
-		p.command = exec.Command("chromium-browser", "--kiosk", "--window-size=1920,1080", "--window-position=0,0", path.Join(p.conf.Directory, fileName))
-		p.command.Env = []string{"DISPLAY=:0.0"}
+		p.browser.command = exec.Command("chromium-browser", "--kiosk", "--window-size=1920,1080", "--window-position=0,0", "--incognito", "--disable-infobars", "--noerrdialogs", "--remote-debugging-port=9222", path.Join(p.conf.Directory, fileName))
+		p.browser.command.Env = []string{"DISPLAY=:0.0"}
 	}
 
 	if p.api.debug {
@@ -77,31 +84,39 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 	}
 
 	// quit the current process to start the next
-	if p.running {
-		log.Println("process is still running, close it")
-		if ext == ".mp4" {
+	if ext == ".mp4" {
+		if p.running {
 			if err := p.SendCommand("quit"); err != nil {
 				return err
 			}
-		} else if p.command.Process != nil {
-			p.command.Process.Kill()
+			p.running = false
 		}
-		p.running = false
+		p.pipeIn, err = p.command.StdinPipe()
+
+		if err != nil {
+			return err
+		}
+
+		p.command.Stderr = os.Stderr
+		p.command.Stdout = os.Stdout
+		err = p.command.Start()
+		p.running = true
+
+		// wait for the program to exit
+		go p.wait()
+	} else {
+		if p.browser.running && p.browser.command.Process != nil {
+			if err := p.browser.command.Process.Kill(); err != nil {
+				return err
+			}
+			p.browser.running = false
+		}
+		p.browser.command.Stdin = os.Stdin
+		p.browser.command.Stdout = os.Stdout
+		p.browser.command.Stderr = os.Stderr
+		err = p.browser.command.Start()
+		p.browser.running = true
 	}
-
-	p.pipeIn, err = p.command.StdinPipe()
-
-	if err != nil {
-		return err
-	}
-
-	p.command.Stderr = os.Stderr
-	p.command.Stdout = os.Stdout
-	err = p.command.Start()
-	p.running = true
-
-	// wait for the program to exit
-	go p.wait()
 
 	return err
 }
