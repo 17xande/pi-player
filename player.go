@@ -83,7 +83,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 			if err := p.SendCommand("quit"); err != nil {
 				return err
 			}
-		} else {
+		} else if p.command.Process != nil {
 			p.command.Process.Kill()
 		}
 		p.running = false
@@ -95,6 +95,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		return err
 	}
 
+	p.command.Stderr = os.Stderr
 	p.command.Stdout = os.Stdout
 	err = p.command.Start()
 	p.running = true
