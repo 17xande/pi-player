@@ -1,18 +1,21 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"time"
 
 	"github.com/gorilla/websocket"
+	cdp "github.com/knq/chromedp"
 )
 
 // Player is the object that renders images to the screen through omxplayer or chromium-browser
@@ -68,23 +71,21 @@ var commandList = map[string]string{
 // based on the type of file that will be opened.
 func (p *Player) Open(fileName string, position time.Duration) error {
 	var err error
+
 	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
 	ext := path.Ext(fileName)
 
-	if ext == ".mp4" {
-		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
-	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
-		p.browser.command = exec.Command("chromium-browser", "--kiosk", "--window-size=1920,1080", "--window-position=0,0", "--incognito", "--disable-infobars", "--noerrdialogs", "--remote-debugging-port=9222", path.Join(p.conf.Directory, fileName))
-		p.browser.command.Env = []string{"DISPLAY=:0.0"}
-	}
-
 	if p.api.debug {
-		p.command = exec.Command("echo", p.command.Args...)
-		// log.Printf("Command: %#v\n", p.command)
-	}
-
-	// quit the current process to start the next
-	if ext == ".mp4" {
+		if p.running {
+			p.command.Process.Kill()
+			p.running = false
+		}
+		log.Println("running quick look with file...")
+		p.command = exec.Command("qlmanage", "-p", path.Join(p.conf.Directory, fileName))
+		p.command.Start()
+		p.running = true
+	} else if ext == ".mp4" {
+		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 		if p.running {
 			if err := p.SendCommand("quit"); err != nil {
 				return err
@@ -104,18 +105,29 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 
 		// wait for the program to exit
 		go p.wait()
-	} else {
-		if p.browser.running && p.browser.command.Process != nil {
-			if err := p.browser.command.Process.Kill(); err != nil {
+	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
+		if p.browser.running {
+			ctxt, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			c, err := cdp.New(ctxt, cdp.WithLog(log.Printf))
+			if err != nil {
 				return err
 			}
-			p.browser.running = false
+
+			t := url.URL{Path: path.Join(p.conf.Directory, fileName)}
+			u := "file://" + t.String()
+			err = c.Run(ctxt, cdp.Navigate(u))
+		} else {
+			p.browser.command = exec.Command("chromium-browser", "--kiosk", "--window-size=1920,1080", "--window-position=0,0", "--incognito", "--disable-infobars", "--noerrdialogs", "--remote-debugging-port=9222", path.Join(p.conf.Directory, fileName))
+			p.browser.command.Env = []string{"DISPLAY=:0.0"}
+
+			p.browser.command.Stdin = os.Stdin
+			p.browser.command.Stdout = os.Stdout
+			p.browser.command.Stderr = os.Stderr
+			err = p.browser.command.Start()
+			p.browser.running = true
 		}
-		p.browser.command.Stdin = os.Stdin
-		p.browser.command.Stdout = os.Stdout
-		p.browser.command.Stderr = os.Stderr
-		err = p.browser.command.Start()
-		p.browser.running = true
 	}
 
 	return err
