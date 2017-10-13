@@ -112,7 +112,6 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 			}
 			p.running = false
 		}
-		t := url.URL{Path: path.Join(p.conf.Directory, fileName)}
 		if p.browser.running {
 			ctxt, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -122,7 +121,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 				return err
 			}
 
-			u := "localhost:8080/viewer?img=" + t.String()
+			u := "localhost:8080/viewer?img=" + url.QueryEscape(fileName)
 			err = c.Run(ctxt, cdp.Navigate(u))
 		} else {
 			f := []string{
@@ -134,7 +133,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 				"--noerrdialogs",
 				"--no-first-run",
 				"--remote-debugging-port=9222",
-				"localhost:8080/viewer?img=" + t.String(),
+				"localhost:8080/viewer?img=" + url.QueryEscape(fileName),
 			}
 			p.browser.command = exec.Command("chromium-browser", f...)
 			p.browser.command.Env = []string{"DISPLAY=:0.0"}
