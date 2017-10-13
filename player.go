@@ -106,6 +106,12 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		// wait for the program to exit
 		go p.wait()
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
+		if p.running {
+			if err := p.SendCommand("quit"); err != nil {
+				return err
+			}
+			p.running = false
+		}
 		if p.browser.running {
 			ctxt, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -119,7 +125,18 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 			u := "file://" + t.String()
 			err = c.Run(ctxt, cdp.Navigate(u))
 		} else {
-			p.browser.command = exec.Command("chromium-browser", "--kiosk", "--window-size=1920,1080", "--window-position=0,0", "--incognito", "--disable-infobars", "--noerrdialogs", "--remote-debugging-port=9222", path.Join(p.conf.Directory, fileName))
+			f := []string{
+				"--window-size=1920,1080",
+				"--window-position=0,0",
+				"--kiosk",
+				"--incognito",
+				"--disable-infobars",
+				"--noerrdialogs",
+				"--no-first-run",
+				"--remote-debugging-port=9222",
+				path.Join(p.conf.Directory, fileName),
+			}
+			p.browser.command = exec.Command("chromium-browser", f...)
 			p.browser.command.Env = []string{"DISPLAY=:0.0"}
 
 			p.browser.command.Stdin = os.Stdin
