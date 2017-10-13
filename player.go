@@ -134,7 +134,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 				"--noerrdialogs",
 				"--no-first-run",
 				"--remote-debugging-port=9222",
-				path.Join(p.conf.Directory, fileName),
+				"localhost:8080/viewer?img=" + fileName,
 			}
 			p.browser.command = exec.Command("chromium-browser", f...)
 			p.browser.command.Env = []string{"DISPLAY=:0.0"}
@@ -302,6 +302,19 @@ func (p *Player) handleControl() http.Handler {
 	}
 
 	return &tempControl
+}
+
+func (p *Player) handleViewer(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	th := templateHandler{
+		filename: "viewer.html",
+		data: map[string]interface{}{
+			"img": "/content/" + q.Get("img"),
+		},
+	}
+
+	th.ServeHTTP(w, r)
 }
 
 func (p *Player) next() error {

@@ -40,7 +40,9 @@ func main() {
 	p := Player{api: &a, conf: conf}
 
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
+	http.Handle("/content/", http.StripPrefix("/content/", http.FileServer(http.Dir(conf.Directory))))
 	http.Handle("/control", p.handleControl())
+	http.HandleFunc("/viewer", p.handleViewer)
 	http.HandleFunc("/control/ws", p.control.handlerWebsocket)
 	http.HandleFunc("/api", a.handle(&p))
 	http.HandleFunc("/", handlerHome)
