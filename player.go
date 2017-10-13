@@ -133,7 +133,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 				"--noerrdialogs",
 				"--no-first-run",
 				"--remote-debugging-port=9222",
-				"localhost:8080/viewer?img=" + url.QueryEscape(fileName),
+				"http://localhost:8080/viewer?img=" + url.QueryEscape(fileName),
 			}
 			p.browser.command = exec.Command("chromium-browser", f...)
 			p.browser.command.Env = []string{"DISPLAY=:0.0"}
