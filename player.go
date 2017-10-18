@@ -112,18 +112,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 			}
 			p.running = false
 		}
-		if p.browser.running {
-			ctxt, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			c, err := cdp.New(ctxt, cdp.WithLog(log.Printf))
-			if err != nil {
-				return err
-			}
-
-			u := "localhost:8080/viewer?img=" + url.QueryEscape(fileName)
-			err = c.Run(ctxt, cdp.Navigate(u))
-		} else {
+		if !p.browser.running {
 			f := []string{
 				"--window-size=1920,1080",
 				"--window-position=0,0",
@@ -143,6 +132,18 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 			p.browser.command.Stderr = os.Stderr
 			err = p.browser.command.Start()
 			p.browser.running = true
+
+		} else {
+			ctxt, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			c, err := cdp.New(ctxt, cdp.WithLog(log.Printf))
+			if err != nil {
+				return err
+			}
+
+			u := "localhost:8080/viewer?img=" + url.QueryEscape(fileName)
+			err = c.Run(ctxt, cdp.Navigate(u))
 		}
 	}
 
