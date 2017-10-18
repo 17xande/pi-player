@@ -72,6 +72,10 @@ var commandList = map[string]string{
 func (p *Player) Open(fileName string, position time.Duration) error {
 	var err error
 
+	if fileName == "" {
+		return errors.New("empty fileName")
+	}
+
 	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
 	ext := path.Ext(fileName)
 
@@ -84,14 +88,18 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		p.command = exec.Command("qlmanage", "-p", path.Join(p.conf.Directory, fileName))
 		p.command.Start()
 		p.running = true
-	} else if ext == ".mp4" {
-		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
-		if p.running {
-			if err := p.SendCommand("quit"); err != nil {
-				return err
-			}
-			p.running = false
+
+		return err
+	}
+
+	if p.running {
+		if err := p.SendCommand("quit"); err != nil {
+			return err
 		}
+	}
+
+	if ext == ".mp4" {
+		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 		p.pipeIn, err = p.command.StdinPipe()
 
 		if err != nil {
@@ -106,12 +114,6 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		// wait for the program to exit
 		go p.wait()
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
-		if p.running {
-			if err := p.SendCommand("quit"); err != nil {
-				return err
-			}
-			p.running = false
-		}
 		if !p.browser.running {
 			f := []string{
 				"--window-size=1920,1080",
@@ -157,7 +159,6 @@ func (p *Player) wait() {
 		log.Println("Process ended")
 	}
 	p.running = false
-	// p.playlist.current = nil
 }
 
 // SendCommand sends a command to the omxplayer process
@@ -252,7 +253,11 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			return
 		}
 
-		m := &resMessage{Success: true, Message: p.playlist.current.Name()}
+		m := &resMessage{
+			Success: true,
+			Event:   "videoStarted",
+			Message: p.playlist.current.Name(),
+		}
 		json.NewEncoder(w).Encode(m)
 		return
 	}
