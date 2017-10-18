@@ -14,7 +14,8 @@ import (
 
 func main() {
 	addr := flag.String("addr", ":8080", "The addr of the application.")
-	debug := flag.Bool("debug", false, "direct commands to stdout instead of omx")
+	test := flag.Bool("test", false, "use macOs quicklook to test on a Mac")
+	debug := flag.Bool("debug", false, "print extra information for debugging")
 	flag.Parse()
 
 	if *debug {
@@ -36,7 +37,7 @@ func main() {
 		log.Println("Config file -> Directory: ", conf)
 	}
 
-	a := apiHandler{debug: *debug}
+	a := apiHandler{debug: *debug, test: *test}
 	p := Player{api: &a, conf: conf}
 
 	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
@@ -100,6 +101,7 @@ func handlerHome(w http.ResponseWriter, r *http.Request) {
 
 type apiHandler struct {
 	debug   bool
+	test    bool
 	message reqMessage
 }
 

@@ -79,7 +79,7 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 	pos := fmt.Sprintf("%02d:%02d:%02d", int(position.Hours()), int(position.Minutes())%60, int(position.Seconds())%60)
 	ext := path.Ext(fileName)
 
-	if p.api.debug {
+	if p.api.test {
 		if p.running {
 			p.command.Process.Kill()
 			p.running = false
