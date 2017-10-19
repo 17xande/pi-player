@@ -92,10 +92,15 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		return err
 	}
 
-	if p.running {
-		if err := p.SendCommand("quit"); err != nil {
-			return err
+	// ProcessState is only set once the command finishes running,
+	// so if it's not set, the program is still running and needs to be terminated.
+	if p.command.ProcessState == nil {
+		p.command.Process.Signal(os.Kill)
+		p.command.Wait()
+		if !p.command.ProcessState.Exited() {
+			return fmt.Errorf("Could not exit command: %#v", p.command)
 		}
+		p.running = false
 	}
 
 	if ext == ".mp4" {
