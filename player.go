@@ -94,11 +94,10 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 
 	// ProcessState is only set once the command finishes running,
 	// so if it's not set, the program is still running and needs to be terminated.
-	if p.command.ProcessState == nil {
-		p.command.Process.Signal(os.Kill)
-		p.command.Wait()
-		if !p.command.ProcessState.Exited() {
-			return fmt.Errorf("Could not exit command: %#v", p.command)
+	if p.command != nil && p.command.ProcessState == nil {
+		err := p.SendCommand("q")
+		if err != nil {
+			return err
 		}
 		p.running = false
 	}
@@ -116,8 +115,8 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		err = p.command.Start()
 		p.running = true
 
-		// wait for the program to exit
-		go p.wait()
+		// wait for the program to exit on separate goroutine
+		// go p.wait()
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
 		if !p.browser.running {
 			f := []string{
@@ -155,15 +154,6 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 	}
 
 	return err
-}
-
-// wait waits for the process to end
-func (p *Player) wait() {
-	p.command.Wait()
-	if p.api.debug {
-		log.Println("Process ended")
-	}
-	p.running = false
 }
 
 // SendCommand sends a command to the omxplayer process
