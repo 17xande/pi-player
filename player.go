@@ -98,7 +98,7 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 		p.pipeIn.Write([]byte("q"))
 		// block till omxplayer exits
 		err := <-p.done
-		if err != nil {
+		if err != nil && err.Error() != "exit status 3" {
 			return err
 		}
 	}
