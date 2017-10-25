@@ -27,6 +27,7 @@ type Player struct {
 	conf     config
 	control  controller
 	running  bool
+	done     chan error
 	browser  Browser
 }
 
@@ -67,9 +68,9 @@ var commandList = map[string]string{
 	"seekForward600":  "\x1b[A",
 }
 
-// Open opens the file in the player, it decides which underlying program to use
+// Start the file that will be played to the screen, it decides which underlying program to use
 // based on the type of file that will be opened.
-func (p *Player) Open(fileName string, position time.Duration) error {
+func (p *Player) Start(fileName string, position time.Duration) error {
 	var err error
 
 	if fileName == "" {
@@ -92,31 +93,35 @@ func (p *Player) Open(fileName string, position time.Duration) error {
 		return err
 	}
 
-	// ProcessState is only set once the command finishes running,
-	// so if it's not set, the program is still running and needs to be terminated.
-	if p.command != nil && p.command.ProcessState == nil {
-		err := p.SendCommand("q")
+	// if omxplayer is already running, stop it
+	if p.running {
+		p.pipeIn.Write([]byte("q"))
+		// block till omxplayer exits
+		err := <-p.done
 		if err != nil {
 			return err
 		}
-		p.running = false
 	}
 
 	if ext == ".mp4" {
-		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
-		p.pipeIn, err = p.command.StdinPipe()
+		// Cmd.Run() blocks, so we goroutine it
+		go func() {
+			p.done = make(chan error)
+			p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
+			p.pipeIn, err = p.command.StdinPipe()
+			if err != nil {
+				p.done <- err
+				return
+			}
 
-		if err != nil {
-			return err
-		}
+			p.command.Stdout = os.Stdout
+			p.command.Stderr = os.Stderr
+			p.running = true
+			p.done <- p.command.Run()
+			p.running = false
+			close(p.done)
+		}()
 
-		p.command.Stderr = os.Stderr
-		p.command.Stdout = os.Stdout
-		err = p.command.Start()
-		p.running = true
-
-		// wait for the program to exit on separate goroutine
-		// go p.wait()
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
 		if !p.browser.running {
 			f := []string{
@@ -171,6 +176,10 @@ func (p *Player) SendCommand(command string) error {
 		_, err = p.pipeIn.Write(b)
 	}
 
+	if err != nil {
+		err = fmt.Errorf("SendCommand: %v\n", err)
+	}
+
 	return err
 }
 
@@ -206,7 +215,7 @@ func (p *Player) ServeHTTP(w http.ResponseWriter, h *http.Request) {
 			return
 		}
 
-		err := p.Open(p.playlist.Items[i].Name(), position)
+		err := p.Start(p.playlist.Items[i].Name(), position)
 		if err != nil {
 			m := &resMessage{Success: false, Message: "Error trying to start video: " + err.Error()}
 			log.Println(m.Message)
@@ -319,7 +328,7 @@ func (p *Player) handleViewer(w http.ResponseWriter, r *http.Request) {
 
 func (p *Player) next() error {
 	n := p.playlist.getNext()
-	err := p.Open(n.Name(), time.Duration(0))
+	err := p.Start(n.Name(), time.Duration(0))
 
 	if err == nil {
 		p.playlist.current = n
@@ -330,7 +339,7 @@ func (p *Player) next() error {
 
 func (p *Player) previous() error {
 	n := p.playlist.getPrevious()
-	err := p.Open(n.Name(), time.Duration(0))
+	err := p.Start(n.Name(), time.Duration(0))
 
 	if err == nil {
 		p.playlist.current = n
