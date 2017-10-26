@@ -107,7 +107,13 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 		// Cmd.Run() blocks, so we goroutine it
 		go func() {
 			p.done = make(chan error)
+			b := path.Base(fileName)
 			p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
+			// check if video must be looped
+			loop := b[len(b)-4:] == "LOOP"
+			if loop {
+				p.command.Args = append(p.command.Args, "--loop")
+			}
 			p.pipeIn, err = p.command.StdinPipe()
 			if err != nil {
 				p.done <- err
@@ -120,6 +126,10 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 			p.done <- p.command.Run()
 			p.running = false
 			close(p.done)
+			// if not looping, start next item in playlist
+			if !loop {
+				p.next()
+			}
 		}()
 
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
