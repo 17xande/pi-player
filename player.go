@@ -28,6 +28,7 @@ type Player struct {
 	control  controller
 	running  bool
 	done     chan error
+	quitting bool
 	browser  Browser
 }
 
@@ -95,22 +96,23 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 
 	// if omxplayer is already running, stop it
 	if p.running {
+		p.quitting = true
 		p.pipeIn.Write([]byte("q"))
 		// block till omxplayer exits
 		err := <-p.done
 		if err != nil && err.Error() != "exit status 3" {
 			return err
 		}
+		p.quitting = false
 	}
 
 	if ext == ".mp4" {
 		// Cmd.Run() blocks, so we goroutine it
 		go func() {
 			p.done = make(chan error)
-			b := path.Base(fileName)
 			p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 			// check if video must be looped
-			loop := b[len(b)-4:] == "LOOP"
+			loop := fileName[len(fileName)-8:len(fileName)-4] == "LOOP"
 			if loop {
 				p.command.Args = append(p.command.Args, "--loop")
 			}
@@ -126,8 +128,7 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 			p.done <- p.command.Run()
 			p.running = false
 			close(p.done)
-			// if not looping, start next item in playlist
-			if !loop {
+			if !p.quitting {
 				p.next()
 			}
 		}()
@@ -336,6 +337,7 @@ func (p *Player) handleViewer(w http.ResponseWriter, r *http.Request) {
 	th.ServeHTTP(w, r)
 }
 
+// next starts the next item in the playlist
 func (p *Player) next() error {
 	n := p.playlist.getNext()
 	err := p.Start(n.Name(), time.Duration(0))
