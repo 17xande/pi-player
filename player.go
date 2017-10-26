@@ -103,33 +103,41 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 		if err != nil && err.Error() != "exit status 3" {
 			return err
 		}
-		p.quitting = false
 	}
 
 	if ext == ".mp4" {
+		p.done = make(chan error)
+		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
+		// check if video must be looped
+		loop := fileName[len(fileName)-8:len(fileName)-4] == "LOOP"
+		if loop {
+			p.command.Args = append(p.command.Args, "--loop")
+		}
+		p.pipeIn, err = p.command.StdinPipe()
+		if err != nil {
+			return err
+		}
+
+		p.command.Stdout = os.Stdout
+		p.command.Stderr = os.Stderr
+
 		// Cmd.Run() blocks, so we goroutine it
 		go func() {
-			p.done = make(chan error)
-			p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
-			// check if video must be looped
-			loop := fileName[len(fileName)-8:len(fileName)-4] == "LOOP"
-			if loop {
-				p.command.Args = append(p.command.Args, "--loop")
-			}
-			p.pipeIn, err = p.command.StdinPipe()
-			if err != nil {
-				p.done <- err
-				return
-			}
-
-			p.command.Stdout = os.Stdout
-			p.command.Stderr = os.Stderr
 			p.running = true
+			// block till the command finishes
 			p.done <- p.command.Run()
 			p.running = false
 			close(p.done)
+
+			// if the program ended because it was quit, then we don't go to next item.
+			// else if the program just came to an end, start the next item, in it's own
+			// goroutine so that this goroutine can end
 			if !p.quitting {
-				p.next()
+				p.quitting = false
+				err := p.next()
+				if err != nil {
+					log.Println("error trying to go to next video naturally: ", err)
+				}
 			}
 		}()
 
