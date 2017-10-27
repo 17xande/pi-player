@@ -127,7 +127,7 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 			// block till the command finishes
 			p.done <- p.command.Run()
 			p.running = false
-			close(p.done)
+			// close(p.done)
 
 			// if the program ended because it was quit, then we don't go to next item.
 			// else if the program just came to an end, start the next item, in it's own
