@@ -126,8 +126,17 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 			p.running = true
 			// block till the command finishes
 			p.done <- p.command.Run()
+		}()
+
+		// we must listen for for error in the p.done channel so we can know when the program has finished.
+		// because that blocks, we have to goroutine it too.
+		go func() {
+			err := <-p.done
 			p.running = false
-			// close(p.done)
+			close(p.done)
+			if err != nil && err.Error() != "exit status 3" {
+				log.Println("error trying to go to next video naturally: ", err)
+			}
 
 			// if the program ended because it was quit, then we don't go to next item.
 			// else if the program just came to an end, start the next item, in it's own
