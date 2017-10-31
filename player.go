@@ -27,7 +27,6 @@ type Player struct {
 	conf     config
 	control  controller
 	running  bool
-	done     chan error
 	quitting bool
 	quit     chan error
 	browser  Browser
@@ -108,7 +107,6 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 	}
 
 	if ext == ".mp4" {
-		p.done = make(chan error)
 		p.command = exec.Command("omxplayer", "-b", "-l", pos, path.Join(p.conf.Directory, fileName))
 		// check if video must be looped
 		loop := fileName[len(fileName)-8:len(fileName)-4] == "LOOP"
@@ -133,15 +131,17 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 		go func() {
 			// Cmd.Wait() blocks till the process is finished
 			err := p.command.Wait()
+			p.running = false
 			if p.quitting {
 				p.quit <- err
 				close(p.quit)
 				p.quitting = false
-			} else {
-				p.done <- err
-				close(p.done)
+			} else { // if the process was not quit midway, and ended naturally, go to the next item.
+				err := p.next()
+				if err != nil {
+					log.Printf("Error trying to go to next item after current item finished: %v\n", err)
+				}
 			}
-			p.running = false
 		}()
 
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
