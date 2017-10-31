@@ -195,6 +195,9 @@ func (p *Player) SendCommand(command string) error {
 		fmt.Println("cmd:", cmd)
 	} else {
 		b := []byte(cmd)
+		if cmd == "q" {
+			p.quitting = true
+		}
 		_, err = p.pipeIn.Write(b)
 	}
 
