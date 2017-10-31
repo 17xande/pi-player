@@ -29,6 +29,7 @@ type Player struct {
 	running  bool
 	done     chan error
 	quitting bool
+	quit     chan error
 	browser  Browser
 }
 
@@ -97,9 +98,10 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 	// if omxplayer is already running, stop it
 	if p.running {
 		p.quitting = true
+		p.quit = make(chan error)
 		p.pipeIn.Write([]byte("q"))
 		// block till omxplayer exits
-		err := <-p.done
+		err := <-p.quit
 		if err != nil && err.Error() != "exit status 3" {
 			return err
 		}
@@ -121,11 +123,20 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 		p.command.Stdout = os.Stdout
 		p.command.Stderr = os.Stderr
 
-		// Cmd.Run() blocks, so we goroutine it
+		p.command.Start()
+
+		// wait for program to finish
 		go func() {
-			p.running = true
-			// block till the command finishes
-			p.done <- p.command.Run()
+			// Cmd.Wait() blocks till the process is finished
+			err := p.command.Wait()
+			if p.quitting {
+				p.quit <- err
+				close(p.quit)
+			} else {
+				p.done <- err
+				close(p.done)
+			}
+			p.running = false
 		}()
 
 		// we must listen for for error in the p.done channel so we can know when the program has finished.
