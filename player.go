@@ -123,7 +123,11 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 		p.command.Stdout = os.Stdout
 		p.command.Stderr = os.Stderr
 
-		p.command.Start()
+		err := p.command.Start()
+		if err != nil {
+			return err
+		}
+		p.running = true
 
 		// wait for program to finish
 		go func() {
@@ -132,33 +136,12 @@ func (p *Player) Start(fileName string, position time.Duration) error {
 			if p.quitting {
 				p.quit <- err
 				close(p.quit)
+				p.quitting = false
 			} else {
 				p.done <- err
 				close(p.done)
 			}
 			p.running = false
-		}()
-
-		// we must listen for for error in the p.done channel so we can know when the program has finished.
-		// because that blocks, we have to goroutine it too.
-		go func() {
-			err := <-p.done
-			p.running = false
-			close(p.done)
-			if err != nil && err.Error() != "exit status 3" {
-				log.Println("error trying to go to next video naturally: ", err)
-			}
-
-			// if the program ended because it was quit, then we don't go to next item.
-			// else if the program just came to an end, start the next item, in it's own
-			// goroutine so that this goroutine can end
-			if !p.quitting {
-				p.quitting = false
-				err := p.next()
-				if err != nil {
-					log.Println("error trying to go to next video naturally: ", err)
-				}
-			}
 		}()
 
 	} else if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".html" {
