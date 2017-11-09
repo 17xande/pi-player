@@ -202,7 +202,7 @@ func (p *Player) SendCommand(command string) error {
 	}
 
 	if err != nil {
-		err = fmt.Errorf("SendCommand: %v\n", err)
+		err = fmt.Errorf("sendCommand: %v", err)
 	}
 
 	return err
